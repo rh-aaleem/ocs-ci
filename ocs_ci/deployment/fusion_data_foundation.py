@@ -73,6 +73,7 @@ class FusionDataFoundationDeployment:
 
         logger.info("Installing IBM Fusion Data Foundation")
         if self.pre_release:
+            logger.info(f"Installing IBM Fusion Data Foundation: {self.pre_release}")
             self.create_image_tag_mirror_set()
             self.create_image_digest_mirror_set()
             self.setup_fdf_pre_release_deployment()
