@@ -531,6 +531,86 @@ class LocalStorageOperator(Operator):
         self.namespace = constants.LOCAL_STORAGE_NAMESPACE
         super().__init__(create_catalog)
 
+    @retry(CommandFailed, tries=5, delay=30, backoff=1)
+    def is_available(self):
+        """
+        Check if the Local Storage Operator is available.
+        First checks if a package manifest exists in the Red Hat operators catalog
+        and verifies the CSV version matches the OCP version.
+        If not found or version mismatch, checks in the unreleased catalog.
+
+        Returns:
+            bool: True if the operator is available with matching version, False otherwise
+        """
+        ocp_version = get_semantic_ocp_version_from_config()
+
+        package_manifest = PackageManifest(
+            resource_name=self.name,
+            selector=f"catalog={constants.OPERATOR_CATALOG_SOURCE_NAME}",
+        )
+        try:
+            package_manifest.get()
+            logger.info(
+                "Local Storage Operator package manifest found in Red Hat operators catalog"
+            )
+
+            try:
+                default_channel = package_manifest.get_default_channel()
+                channels = package_manifest.get_channels()
+
+                for channel in channels:
+                    if channel["name"] == default_channel:
+                        csv_version = channel.get("currentCSVDesc", {}).get(
+                            "version", ""
+                        )
+                        csv_name = channel.get("currentCSV", "")
+
+                        logger.info(
+                            f"Found CSV: {csv_name}, version: {csv_version}, "
+                            f"OCP version: {ocp_version}"
+                        )
+
+                        if csv_version.startswith(ocp_version):
+                            logger.info(
+                                f"CSV version {csv_version} matches OCP version {ocp_version}"
+                            )
+                            return True
+                        else:
+                            logger.warning(
+                                f"CSV version {csv_version} does not match OCP version {ocp_version}"
+                            )
+                            return False
+
+                logger.warning(
+                    f"Could not find default channel {default_channel} in channels"
+                )
+                return False
+
+            except (KeyError, CommandFailed) as e:
+                logger.warning(f"Could not verify CSV version: {e}")
+                return False
+
+        except ResourceNotFoundError:
+            logger.info(
+                "Local Storage Operator package manifest not found in Red Hat operators catalog, "
+                "checking unreleased catalog"
+            )
+            package_manifest = PackageManifest(
+                resource_name=self.name,
+                selector=f"catalog={self.unreleased_catalog_name}",
+            )
+            try:
+                package_manifest.get()
+                logger.info(
+                    "Local Storage Operator package manifest found in unreleased catalog"
+                )
+                return True
+            except ResourceNotFoundError:
+                logger.info(
+                    "Local Storage Operator package manifest not found in any catalog"
+                )
+                return False
+
     def _customize_operatorgroup(self, operatorgroup_data: dict):
         """
         Hook for LSO to customize OperatorGroup YAML

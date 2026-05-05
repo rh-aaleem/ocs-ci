@@ -88,12 +88,11 @@ class FusionDataFoundationDeployment:
         """
         In the case of LSO is not available - bring catalog for unreleased version and install it
         """
-
         logger.info("Ensuring Local Storage Operator (LSO) is installed")
         lso_operator = LocalStorageOperator()
         if not lso_operator.is_available():
             lso_operator.create_catalog()
-            lso_operator.deploy()
+        lso_operator.deploy()
 
     def create_image_tag_mirror_set(self):
         """
