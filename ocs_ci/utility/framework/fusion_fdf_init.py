@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 LOG_NAMES = {
     "fusion": "fusion_deployment",
     "fdf": "fusion_data_foundation_deployment",
+    "fdf-mirror": "fdf_catalog_mirroring",
 }
 
 
@@ -150,6 +151,24 @@ class Initializer(object):
             )
             parser.add_argument(
                 "--fdf-image-tag", default=None, help="Image tag of FDF to install"
+            )
+        # FDF Mirror specific args
+        elif self.deployment_type == "fdf-mirror":
+            parser.add_argument(
+                "--catalog-image",
+                required=True,
+                help="FDF catalog image to mirror (e.g., cp.stg.icr.io/cp/df/isf-data-foundation-catalog:v4.20)",
+            )
+            parser.add_argument(
+                "--mirror-registry",
+                default=None,
+                help="Target mirror registry (e.g., registry.example.com:5000). If not provided, uses config value.",
+            )
+            parser.add_argument(
+                "--configure-registries",
+                action="store_true",
+                default=False,
+                help="Configure /etc/containers/registries.conf for internal FDF images",
             )
 
         parsed_args, _ = parser.parse_known_args(args)
