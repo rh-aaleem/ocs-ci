@@ -6929,7 +6929,7 @@ def create_lvs_resource(
     if config.ENV_DATA["mcg_only_deployment"]:
         lvs_data["spec"]["volumeMode"] = constants.VOLUME_MODE_FILESYSTEM
 
-    lvs_obj = apply_resource(**lvs_data)
+    lvs_obj = create_resource(**lvs_data)
     lvs_obj.reload()
     return lvs_obj
 
